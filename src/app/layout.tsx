@@ -1,20 +1,27 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import { Inter } from 'next/font/google';
+import type { Metadata } from 'next';
+import './globals.css';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "Next.js Template",
-  description: "A minimal Next.js starter template",
+  title: 'Chama OS - Digital Ledger for Kenyan Chamas',
+  description: 'Trusted digital ledger for merry-go-rounds, investment groups. Works offline.',
+  manifest: '/manifest.json',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+  themeColor: '#16a34a',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/icons/icon-192x192.png'
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Chama OS'
+  }
 };
 
 export default function RootLayout({
@@ -23,11 +30,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+    <html lang="sw">
+      <head>
+        <meta name="theme-color" content="#16a34a" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="manifest" href="/manifest.json" />
+      </head>
+      <body className={`${inter.variable} font-sans antialiased bg-gray-50 text-gray-900`}>
+        <div className="min-h-screen pb-20">
+          {/* Top status bar simulation */}
+          <div className="bg-green-600 text-white px-4 py-2 text-sm font-medium">
+            Chama OS
+          </div>
+          {children}
+        </div>
       </body>
     </html>
   );

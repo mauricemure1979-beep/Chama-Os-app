@@ -1,44 +1,106 @@
-# Product Context: Next.js Starter Template
+# Product Context: Chama OS
 
-## Why This Template Exists
+## Why This Exists
 
-Starting a new Next.js project involves boilerplate setup, configuration decisions, and establishing patterns. This template provides a clean, opinionated starting point that eliminates setup friction and establishes best practices from the start. It's optimized for AI-assisted development, where an AI can quickly extend the template based on user requirements.
+Kenyan chamas traditionally manage funds using notebooks, WhatsApp messages, and SMS. This creates inefficiency, errors, lack of transparency, and no audit trail. Chama OS provides a trusted digital ledger that works offline and mimics the familiar notebook feel with M-Pesa integration.
 
-## Problems It Solves
+## User Flows
 
-1. **Setup Time**: Eliminates boilerplate configuration (TypeScript, Tailwind, ESLint)
-2. **Decision Fatigue**: Pre-made choices for tooling and patterns
-3. **AI Context**: Memory bank provides persistent context for AI assistants
-4. **Extensibility**: Recipe system for adding common features
-5. **Consistency**: Standardized project structure and conventions
+### Onboarding Flow
+```
+Open App → Create Chama → Set rules (amount, cycle, fines) → Add Members → Done
+```
+Duration: ~2 minutes
 
-## How It Should Work (User Flow)
+### Record Contribution (Voice)
+```
+Tap Add → Press Mic → Say "Wanjiku ameweka 2000 leo" → Review → Confirm → M-Pesa prompt
+```
+Duration: ~15 seconds
 
-1. User starts with this template
-2. User describes what they want to build to AI assistant
-3. AI adds pages, components, and features as needed
-4. AI uses recipes for common additions (database, auth)
-5. User previews changes via hot reload
-6. Iterate until satisfied
-7. Deploy
+### Record Contribution (Manual)
+```
+Tap Add → Select member → Enter amount → Record → M-Pesa prompt
+```
+Duration: ~30 seconds
 
-## Key User Experience Goals
+### View Statement
+```
+Tap Statements → Select month → View → Download PDF OR Share to WhatsApp
+```
+Duration: ~10 seconds
 
-- **Zero to Feature Fast**: Get building immediately, no setup required
-- **AI-Friendly**: Memory bank and recipes make AI assistance effective
-- **Flexible Foundation**: Can become any type of application
-- **Best Practices Built-In**: TypeScript strict mode, ESLint, clean structure
+### Payout Rotation
+```
+Cycle due → Identify recipient → Double approval → Initiate payout → Auto-M-Pesa
+```
+Duration: ~1 minute
 
-## What This Template Provides
+## UX Goals
 
-1. **Clean App Structure**: Single page ready for expansion
-2. **Type Safety**: Full TypeScript setup with strict mode
-3. **Modern Styling**: Tailwind CSS 4 ready to use
-4. **Code Quality**: ESLint configured
-5. **Extensibility**: Recipe system for common features
+### Design Principles
 
-## Integration Points
+1. **One primary action per screen**
+   - No hamburger menus
+   - Clear single call-to-action
 
-- **Database**: Use add-database recipe for Drizzle + SQLite
-- **Styling**: Tailwind CSS pre-configured
-- **AI Assistance**: Memory bank for context persistence
+2. **Big, tappable buttons**
+   - Minimum 44×44px touch targets
+   - High contrast colors
+
+3. **Color semantics**
+   - Green = paid/arrived/complete
+   - Red = arrears/overdue/failed
+   - Amber = pending/attention
+
+4. **Swahili first, English secondary**
+   - All copy in simple Swahili
+   - English in smaller grey text
+
+5. **Data economy**
+   - <2MB per month per user
+   - Image compression, lazy loading
+
+### Screens
+
+#### Home Dashboard
+- Current balance (large)
+- Next payout date & recipient
+- Add Contribution button (prominent)
+- Members quick access
+- Cycle progress bar
+- Recent activity (last 5)
+
+#### Add Contribution
+- Microphone button (primary)
+- Manual fields fallback
+- Parsed preview (green confirmation)
+- Amount quick-select (1k, 2k, 5k, 10k)
+- M-Pesa status
+
+#### Members List
+- Search bar
+- Filter (All/Active/Pending)
+- Member card: avatar, name, masked phone, total, role, status
+- Actions: Send Reminder, View History
+- Floating add button
+
+#### Statements
+- Horizontal month selector
+- Monthly PDF preview with totals
+- Download PDF button
+- WhatsApp share button
+- M-Pesa transaction IDs visible
+
+#### Settings
+- Chama settings (type, amount, cycle, fines, withdrawal limit)
+- App settings (language, notifications, data saver, biometric lock, auto-sync)
+- Help & Support
+- Sign Out
+
+### Error States
+
+- **Network down**: Offline indicator, actions queued
+- **Payment unmatched**: Manual review screen
+- **Voice unclear**: Show suggestions, confirm manually
+- **Low balance**: Warning banner

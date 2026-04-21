@@ -1,120 +1,173 @@
-# System Patterns: Next.js Starter Template
+# System Patterns: Chama OS
 
 ## Architecture Overview
 
 ```
-src/
-├── app/                    # Next.js App Router
-│   ├── layout.tsx          # Root layout + metadata
-│   ├── page.tsx            # Home page
-│   ├── globals.css         # Tailwind imports + global styles
-│   └── favicon.ico         # Site icon
-└── (expand as needed)
-    ├── components/         # React components (add when needed)
-    ├── lib/                # Utilities and helpers (add when needed)
-    └── db/                 # Database files (add via recipe)
+Mobile PWA → Next.js (App Router) → Supabase → M-Pesa/Africa's Talking
+    ↓
+Offline-first (IndexedDB) → Background sync → Audit log
 ```
 
 ## Key Design Patterns
 
-### 1. App Router Pattern
+### 1. Offline-First Database
 
-Uses Next.js App Router with file-based routing:
+- Writes go to IndexedDB immediately
+- Changes queued for background sync
+- Sync when online, retry on failure
+- Conflict resolution: last-write-wins with timestamp
+
+### 2. Server Components by Default
+
+All pages start as Server Components (data fetching). Switch to `"use client"` only when:
+
+- Using `useState`/`useEffect`
+- Voice recording (Web Speech API)
+- IndexedDB access
+- Interactive form state
+
+### 3. One Primary Action Per Screen
+
+Each screen has exactly one main call-to-action:
+- Home → "Add Contribution"
+- Add → "Record & Send M-Pesa Prompt"
+- Members → "Add Member" (FAB)
+- Statements → "Download/Share" (after selecting month)
+- Settings → Toggle switches
+
+### 4. Color-Coded Status
+
+```
+Green (#16a34a):  paid, verified, complete
+Red (#dc2626):    arrears, late, failed
+Amber (#f59e0b):  pending, attention, processing
+Gray (#6b7280):   neutral, inactive
+```
+
+### 5. Row Level Security (RLS)
+
+All Supabase tables enforce RLS:
+```sql
+-- Users only see their chama data
+CREATE POLICY chama_member_select ON chamas
+  FOR SELECT USING (
+    id IN (SELECT chama_id FROM chama_members WHERE user_id = auth.uid())
+  );
+```
+
+## Voice Input Pipeline
+
+```
+Raw audio → Web Speech API / Whisper Model → Normalized text
+     ↓
+NLP: Tokenize → Name extraction (fuzzy match) → Amount extraction → Date extraction
+     ↓
+Confidence scoring → If <70%, show suggestions UI
+     ↓
+Populate form fields for manual review → Submit
+```
+
+## M-Pesa Integration Flow
+
+```
+1. User taps "Record Contribution"
+2. Frontend → POST /api/mpesa/stk-push
+   { PhoneNumber, Amount, AccountReference: "CHAMA|MEMBER" }
+3. Safaricom sends STK prompt to user's phone
+4. User enters PIN → Payment processed
+5. Safaricom POSTS to /api/mpesa/webhook
+6. Webhook:
+   a. Verify signature
+   b. Parse BillRefNumber → CHAMA_ID, MEMBER_ID
+   c. Find pending contribution (by member, amount, ±3 days)
+   d. Update → is_verified = true, status = paid
+   e. Update audit_log
+   f. Queue confirmation SMS
+7. Frontend realtime subscription updates UI
+```
+
+## PDF Statement Generation
+
+- **Library**: `@react-pdf/renderer` (client-side)
+- **Content**:
+  - Chama letterhead + stamp
+  - Period (month/year)
+  - Summary: contributions, payouts, fines, balance
+  - Line items with M-Pesa transaction IDs
+  - Treasurer signature line
+- **Export**: Blob download + WhatsApp share
+
+## Offline Sync Strategy
+
+```typescript
+// 1. Writes happen locally first
+await offlineDb.storeContribution(contribution);
+await offlineDb.queueSync('contributions', contribution.id);
+
+// 2. Background worker syncs when online
+if (navigator.onLine) {
+  const pending = await offlineDb.getPendingChanges();
+  await Promise.all(pending.map(item => syncToServer(item)));
+  await offlineDb.markSynced(pending.map(p => p.id));
+}
+
+// 3. Realtime fallback
+const channel = supabase.channel('updates')
+  .on('postgres_changes', { event: '*', schema: 'public' }, handleChange)
+  .subscribe();
+```
+
+## Authentication & Authorization
+
+- **Method**: Supabase Auth (phone OTP or email/password)
+- **Session**: HTTP-only cookies, refresh token rotation
+- **Authorization**: RLS + application-level checks (double approval)
+
+## File Structure
+
 ```
 src/app/
-├── page.tsx           # Route: /
-├── about/page.tsx     # Route: /about
-├── blog/
-│   ├── page.tsx       # Route: /blog
-│   └── [slug]/page.tsx # Route: /blog/:slug
+├── page.tsx              # Home dashboard
+├── layout.tsx            # Root layout
+├── add-contribution/page.tsx
+├── members/page.tsx
+├── statements/page.tsx
+├── settings/page.tsx
 └── api/
-    └── route.ts       # API Route: /api
+    ├── mpesa/
+    │   ├── stk-push/route.ts
+    │   └── webhook/route.ts
+    ├── contributions/route.ts
+    ├── statements/route.ts
+    └── ussd/route.ts
+
+src/lib/
+├── db.ts                 # Supabase client + typed queries
+├── voice-parser.ts       # Swahili NLP
+├── mpesa.ts              # M-Pesa API client
+└── offline.ts            # IndexedDB wrapper
+
+src/types/database.ts     # TypeScript interfaces
 ```
 
-### 2. Component Organization Pattern (When Expanding)
+## Error Handling Strategy
 
-```
-src/components/
-├── ui/                # Reusable UI components (Button, Card, etc.)
-├── layout/            # Layout components (Header, Footer)
-├── sections/          # Page sections (Hero, Features, etc.)
-└── forms/             # Form components
-```
+- API errors: Try/catch with user-friendly messages
+- Network errors: Retry queue with exponential backoff
+- M-Pesa failures: Manual review UI for treasurer
+- Voice parsing: Confidence threshold + suggestions
 
-### 3. Server Components by Default
+## Performance Optimizations
 
-All components are Server Components unless marked with `"use client"`:
-```tsx
-// Server Component (default) - can fetch data, access DB
-export default function Page() {
-  return <div>Server rendered</div>;
-}
+- Images: `next/image` with lazy loading
+- Data: Limit queries, pagination (limit 50)
+- Bundle: Server Components reduce client JS
+- Offline: Service worker caching of static assets
 
-// Client Component - for interactivity
-"use client";
-export default function Counter() {
-  const [count, setCount] = useState(0);
-  return <button onClick={() => setCount(c => c + 1)}>{count}</button>;
-}
-```
+## Security Patterns
 
-### 4. Layout Pattern
-
-Layouts wrap pages and can be nested:
-```tsx
-// src/app/layout.tsx - Root layout
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
-}
-
-// src/app/dashboard/layout.tsx - Nested layout
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex">
-      <Sidebar />
-      <main>{children}</main>
-    </div>
-  );
-}
-```
-
-## Styling Conventions
-
-### Tailwind CSS Usage
-- Utility classes directly on elements
-- Component composition for repeated patterns
-- Responsive: `sm:`, `md:`, `lg:`, `xl:`
-
-### Common Patterns
-```tsx
-// Container
-<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-// Responsive grid
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-// Flexbox centering
-<div className="flex items-center justify-center">
-```
-
-## File Naming Conventions
-
-- Components: PascalCase (`Button.tsx`, `Header.tsx`)
-- Utilities: camelCase (`utils.ts`, `helpers.ts`)
-- Pages/Routes: lowercase (`page.tsx`, `layout.tsx`)
-- Directories: kebab-case (`api-routes/`) or lowercase (`components/`)
-
-## State Management
-
-For simple needs:
-- `useState` for local component state
-- `useContext` for shared state
-- Server Components for data fetching
-
-For complex needs (add when necessary):
-- Zustand for client state
-- React Query for server state
+- RLS enforced at database level
+- PIN hashed with bcrypt/scrypt
+- Biometric data never leaves device (WebAuthn local only)
+- Audit log records all mutations
+- No PII beyond phone + name

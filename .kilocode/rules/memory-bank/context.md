@@ -1,87 +1,58 @@
-# Active Context: Next.js Starter Template
+# Current State: Chama OS
 
-## Current State
+## Project Status
 
-**Template Status**: ✅ Ready for development
+**Phase**: MVP Development
+**Last Updated**: 2025-04-21
 
-The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. It's ready for AI-assisted expansion to build any type of application.
+## Recent Completed Changes
 
-## Recently Completed
-
-- [x] Base Next.js 16 setup with App Router
-- [x] TypeScript configuration with strict mode
-- [x] Tailwind CSS 4 integration
-- [x] ESLint configuration
-- [x] Memory bank documentation
-- [x] Recipe system for common features
-
-## Current Structure
-
-| File/Directory | Purpose | Status |
-|----------------|---------|--------|
-| `src/app/page.tsx` | Home page | ✅ Ready |
-| `src/app/layout.tsx` | Root layout | ✅ Ready |
-| `src/app/globals.css` | Global styles | ✅ Ready |
-| `.kilocode/` | AI context & recipes | ✅ Ready |
+- [x] Database schema designed (SQL with 10 tables)
+- [x] 5 core UI screens implemented:
+  - [x] Home dashboard (balance, next payout, activity)
+  - [x] Add contribution (voice + manual input)
+  - [x] Members list (search, filter, roles)
+  - [x] Statements (PDF generation, WhatsApp share)
+  - [x] Settings (chama + app config)
+- [x] M-Pesa webhook handler (matching logic, verification)
+- [x] Swahili voice parser with Sheng abbreviations
+- [x] TypeScript types for all entities
+- [x] Next.js routing configured
+- [x] Memory bank updated with full architecture
 
 ## Current Focus
 
-The template is ready. Next steps depend on user requirements:
+Integrating M-Pesa Daraja API credentials for end-to-end payment flow testing.
 
-1. What type of application to build
-2. What features are needed
-3. Design/branding preferences
+Pending items:
+1. Supabase database setup & RLS policies
+2. M-Pesa sandbox integration
+3. Africa's Talking SMS setup for reminders
+4. Offline storage implementation (IndexedDB)
+5. Voice recording integration (Web Speech API)
+6. PDF generation for statements
+7. USSD menu via Africa's Talking
+8. Testing & QA
 
-## Quick Start Guide
+## Known Issues
 
-### To add a new page:
+- ⚠️ Voice parser accuracy needs real-world testing (currently synthetic)
+- ⚠️ Offline sync not implemented (stubbed)
+- ⚠️ No auth flows yet
+- ⚠️ Icons use inline SVGs (should move to components later)
 
-Create a file at `src/app/[route]/page.tsx`:
-```tsx
-export default function NewPage() {
-  return <div>New page content</div>;
-}
-```
+## Next Up (Priority Order)
 
-### To add components:
-
-Create `src/components/` directory and add components:
-```tsx
-// src/components/ui/Button.tsx
-export function Button({ children }: { children: React.ReactNode }) {
-  return <button className="px-4 py-2 bg-blue-600 text-white rounded">{children}</button>;
-}
-```
-
-### To add a database:
-
-Follow `.kilocode/recipes/add-database.md`
-
-### To add API routes:
-
-Create `src/app/api/[route]/route.ts`:
-```tsx
-import { NextResponse } from "next/server";
-
-export async function GET() {
-  return NextResponse.json({ message: "Hello" });
-}
-```
-
-## Available Recipes
-
-| Recipe | File | Use Case |
-|--------|------|----------|
-| Add Database | `.kilocode/recipes/add-database.md` | Data persistence with Drizzle + SQLite |
-
-## Pending Improvements
-
-- [ ] Add more recipes (auth, email, etc.)
-- [ ] Add example components
-- [ ] Add testing setup recipe
+1. Install dependencies: `bun add @supabase/supabase-js @react-pdf/renderer`
+2. Initialize Supabase project, run schema.sql
+3. Build auth flow (signup/login with phone OTP)
+4. Create first chama onboarding flow
+5. Implement offline storage wrapper
+6. Connect M-Pesa sandbox
+7. Add Africa's Talking SMS for reminders
 
 ## Session History
 
 | Date | Changes |
 |------|---------|
-| Initial | Template created with base setup |
+| 2025-04-21 | Initial project setup, screens, voice parser, M-Pesa webhook, memory bank |
