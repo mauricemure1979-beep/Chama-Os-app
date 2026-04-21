@@ -1,5 +1,5 @@
 import { Inter } from 'next/font/google';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { SessionProvider } from '@/lib/session';
 
@@ -12,8 +12,6 @@ export const metadata: Metadata = {
   title: 'Chama OS - Digital Ledger for Kenyan Chamas',
   description: 'Trusted digital ledger for merry-go-rounds, investment groups. Works offline.',
   manifest: '/manifest.json',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
-  themeColor: '#16a34a',
   icons: {
     icon: '/favicon.ico',
     apple: '/icons/icon-192x192.png'
@@ -23,6 +21,14 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'Chama OS'
   }
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#16a34a',
 };
 
 export default function RootLayout({
