@@ -1,17 +1,5 @@
-// Database client for Chama OS
-// Uses Supabase (PostgreSQL) with SQLite fallback for offline mode
+// Database for Chama OS - localStorage-based implementation
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-
-// Supabase client (online mode)
-export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-export const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseKey, {
-  realtime: { params: { eventsPerSecond: 10 } }
-}) as SupabaseClient<any>;
-
-// Offline storage interface
 export interface OfflineStorage {
   init(): Promise<void>;
   storeChange(table: string, operation: 'insert' | 'update' | 'delete', data: Record<string, unknown>): Promise<void>;
@@ -20,18 +8,13 @@ export interface OfflineStorage {
   close(): Promise<void>;
 }
 
-// SQLite storage mock (uses localStorage in browser)
 export class SQLiteStorage implements OfflineStorage {
   private db: any = null;
 
   async init(): Promise<void> {
     try {
-      // In browser, check for IndexedDB support
       if (typeof window !== 'undefined' && 'indexedDB' in window) {
-        // @ts-ignore - Dexie.js or custom wrapper would be used in production
-        this.db = await this.initIndexedDB();
-      } else {
-        console.warn('IndexedDB not available, using localStorage fallback');
+        console.warn('Using localStorage fallback for offline storage');
       }
     } catch (error) {
       console.error('Failed to init offline storage:', error);
@@ -57,125 +40,91 @@ export class SQLiteStorage implements OfflineStorage {
   async close(): Promise<void> {}
 }
 
-// Type-safe database queries
+function getStorageKey(table: string) {
+  return `chama_${table}`;
+}
+
 export const db = {
-  // Chamas
-  async getChamas(userId: string) {
-    const { data, error } = await supabase
-      .from('chamas')
-      .select(`
-        *,
-        chama_members (
-          id, user_id, status, total_contributions_cents,
-          user: users (id, full_name, phone_number, role)
-        )
-      `)
-      .eq('treasurer_id', userId)
-      .eq('is_active', true);
-    if (error) throw error;
-    return data;
+  getChamas() {
+    return JSON.parse(localStorage.getItem(getStorageKey('chamas')) || '[]');
   },
 
-  async getChamaById(chamaId: string) {
-    const { data, error } = await supabase
-      .from('chamas')
-      .select(`
-        *,
-        chama_members (
-          id, user_id, status, total_contributions_cents, next_payout_date,
-          user: users (id, full_name, phone_number, role)
-        )
-      `)
-      .eq('id', chamaId)
-      .single();
-    if (error) throw error;
-    return data;
+  saveChama(chama: Record<string, unknown>) {
+    const chamas = db.getChamas();
+    chamas.push({ ...chama, id: chama.id || crypto.randomUUID() });
+    localStorage.setItem(getStorageKey('chamas'), JSON.stringify(chamas));
+    return chama;
   },
 
-  // Contributions
-  async getContributions(chamaId: string, limit = 50) {
-    const { data, error } = await supabase
-      .from('contributions')
-      .select(`
-        *,
-        chama_members (
-          user: users (full_name)
-        )
-      `)
-      .eq('chama_id', chamaId)
-      .order('contribution_date', { ascending: false })
-      .limit(limit);
-    if (error) throw error;
-    return data;
+  getUsers() {
+    return JSON.parse(localStorage.getItem(getStorageKey('users')) || '[]');
   },
 
-  async createContribution(params: {
-    chama_id: string;
-    member_id: string;
-    amount_cents: number;
-    contribution_date: string;
-    payment_method: string;
-  }) {
-    const { data, error } = await supabase
-      .from('contributions')
-      .insert([params])
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-
-  async updateContribution(id: string, updates: Record<string, unknown>) {
-    const { data, error } = await supabase
-      .from('contributions')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-
-  // Members
-  async getChamaMembers(chamaId: string) {
-    const { data, error } = await supabase
-      .from('chama_members')
-      .select(`
-        *,
-        user: users (id, full_name, phone_number, role, preferred_language)
-      `)
-      .eq('chama_id', chamaId)
-      .eq('status', 'active')
-      .order('payout_order', { ascending: true });
-    if (error) throw error;
-    return data;
-  },
-
-  async addMemberToChama(chamaId: string, userId: string) {
-    const { data, error } = await supabase
-      .from('chama_members')
-      .insert([{ chama_id: chamaId, user_id: userId }])
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-
-  // Statements
-  async getStatements(chamaId: string, memberId?: string) {
-    let query = supabase
-      .from('statements')
-      .select('*')
-      .eq('chama_id', chamaId)
-      .order('year', { ascending: false })
-      .order('month', { ascending: false });
-
-    if (memberId) {
-      query = query.eq('member_id', memberId);
+  saveUser(user: Record<string, unknown>) {
+    const users = db.getUsers();
+    const existing = users.findIndex((u: { phone: string }) => u.phone === user.phone);
+    if (existing >= 0) {
+      users[existing] = { ...users[existing], ...user };
+    } else {
+      users.push({ ...user, id: user.id || crypto.randomUUID() });
     }
+    localStorage.setItem(getStorageKey('users'), JSON.stringify(users));
+    return user;
+  },
 
-    const { data, error } = await query;
-    if (error) throw error;
-    return data;
+  getContributions() {
+    return JSON.parse(localStorage.getItem(getStorageKey('contributions')) || '[]');
+  },
+
+  saveContribution(contribution: Record<string, unknown>) {
+    const contributions = db.getContributions();
+    contributions.push({ ...contribution, id: contribution.id || crypto.randomUUID(), createdAt: new Date().toISOString() });
+    localStorage.setItem(getStorageKey('contributions'), JSON.stringify(contributions));
+    return contribution;
+  },
+
+  getMembers() {
+    return JSON.parse(localStorage.getItem(getStorageKey('members')) || '[]');
+  },
+
+  saveMember(member: Record<string, unknown>) {
+    const members = db.getMembers();
+    members.push({ ...member, id: member.id || crypto.randomUUID() });
+    localStorage.setItem(getStorageKey('members'), JSON.stringify(members));
+    return member;
+  },
+
+  // Chat messages
+  getMessages() {
+    return JSON.parse(localStorage.getItem('chama_messages') || '[]');
+  },
+
+  saveMessage(message: Record<string, unknown>) {
+    const messages = db.getMessages();
+    messages.push({ ...message, id: crypto.randomUUID(), createdAt: new Date().toISOString() });
+    localStorage.setItem('chama_messages', JSON.stringify(messages));
+    return message;
+  },
+
+  // Initialize with demo data
+  initDemo() {
+    if (db.getMembers().length === 0) {
+      const demoMembers = [
+        { id: '1', name: 'Wanjiku Wanjiru', phone: '+254712345678', totalContributions: 45000, status: 'active', role: 'member' },
+        { id: '2', name: 'Kamau Maina', phone: '+254723456789', totalContributions: 32000, status: 'active', role: 'member' },
+        { id: '3', name: 'Achieng Ochieng', phone: '+254734567890', totalContributions: 51000, status: 'active', role: 'member' },
+        { id: '4', name: 'Omondi Otieno', phone: '+254745678901', totalContributions: 28000, status: 'active', role: 'member' },
+        { id: '5', name: 'Njoroge Kimani', phone: '+254756789012', totalContributions: 45000, status: 'active', role: 'treasurer' },
+      ];
+      localStorage.setItem(getStorageKey('members'), JSON.stringify(demoMembers));
+
+      const demoContributions = [
+        { id: '1', memberId: '1', memberName: 'Wanjiku Wanjiru', amount: 2000, date: '2025-04-20', status: 'paid' },
+        { id: '2', memberId: '2', memberName: 'Kamau Maina', amount: 2000, date: '2025-04-19', status: 'paid' },
+        { id: '3', memberId: '3', memberName: 'Achieng Ochieng', amount: 2000, date: '2025-04-18', status: 'paid' },
+        { id: '4', memberId: '4', memberName: 'Omondi Otieno', amount: 1500, date: '2025-04-17', status: 'partial' },
+      ];
+      localStorage.setItem(getStorageKey('contributions'), JSON.stringify(demoContributions));
+    }
   }
 };

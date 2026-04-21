@@ -1,6 +1,7 @@
 import { Inter } from 'next/font/google';
 import type { Metadata } from 'next';
 import './globals.css';
+import { SessionProvider } from '@/lib/session';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -38,13 +39,15 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-gray-50 text-gray-900`}>
-        <div className="min-h-screen pb-20">
-          {/* Top status bar simulation */}
-          <div className="bg-green-600 text-white px-4 py-2 text-sm font-medium">
-            Chama OS
+        <SessionProvider>
+          <div className="min-h-screen pb-20">
+            {/* Top status bar simulation */}
+            <div className="bg-green-600 text-white px-4 py-2 text-sm font-medium">
+              Chama OS
+            </div>
+            {children}
           </div>
-          {children}
-        </div>
+        </SessionProvider>
       </body>
     </html>
   );

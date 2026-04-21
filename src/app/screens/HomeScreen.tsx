@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession } from '@/lib/session';
+import { db } from '@/lib/db';
 
 type IconProps = { className?: string; size?: number };
 
@@ -38,23 +40,69 @@ const WalletIcon = ({ className, size = 24 }: IconProps) => (
     <line x1="1" y1="10" x2="23" y2="10" />
   </svg>
 );
+const ChatIcon = ({ className, size = 24 }: IconProps) => (
+  <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+const LogoutIcon = ({ className, size = 24 }: IconProps) => (
+  <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+const AdminIcon = ({ className, size = 24 }: IconProps) => (
+  <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+
+function getInitialContributions(): Array<{id: string; memberName: string; amount: number; date: string; status: string}> {
+  if (typeof window === 'undefined') return [];
+  db.initDemo();
+  return db.getContributions();
+}
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { session, logout, isAdmin } = useSession();
+  const [contributions, setContributions] = useState<Array<{id: string; memberName: string; amount: number; date: string; status: string}>>(getInitialContributions);
+
   const mockChama = { totalBalance: 450000, nextPayoutDate: '2025-05-05', nextPayoutMember: 'Wanjiru Kimani', contributionAmount: 2000 };
-  const recentActivity = [
-    { id: '1', memberName: 'Wanjiku', amount: 2000, date: 'Today', status: 'paid' as const },
-    { id: '2', memberName: 'Kamau', amount: 100, date: 'Yesterday', status: 'applied' as const },
-    { id: '3', memberName: 'Achieng', amount: 45000, date: '2 days ago', status: 'paid' as const },
-  ];
   const formatCurrency = (cents: number) => `KES ${(cents / 100).toLocaleString()}`;
+
+  const recentActivity = contributions.length > 0 ? contributions.slice(0, 5) : [
+    { id: '1', memberName: 'Wanjiku', amount: 2000, date: 'Today', status: 'paid' },
+    { id: '2', memberName: 'Kamau', amount: 100, date: 'Yesterday', status: 'applied' },
+    { id: '3', memberName: 'Achieng', amount: 45000, date: '2 days ago', status: 'paid' },
+  ];
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <div className="p-4 space-y-6">
       <div className="bg-green-600 text-white p-6 rounded-2xl shadow-lg">
-        <h1 className="text-2xl font-bold mb-1">Mikopo Ya Biashara</h1>
-        <p className="text-green-100 text-sm">Merry-go-round</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold mb-1">Mikopo Ya Biashara</h1>
+            <p className="text-green-100 text-sm">Merry-go-round</p>
+            {session?.name && <p className="text-green-200 text-xs mt-2">Welcome, {session.name}</p>}
+          </div>
+          <button onClick={handleLogout} className="p-2 hover:bg-green-700 rounded-full transition-colors">
+            <LogoutIcon size={20} />
+          </button>
+        </div>
       </div>
+
+      {isAdmin && (
+        <button onClick={() => router.push('/admin')} className="w-full bg-amber-500 hover:bg-amber-600 text-white p-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95">
+          <AdminIcon size={20} /><span className="font-semibold">Admin Dashboard</span>
+        </button>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-xl shadow border border-gray-100">
           <div className="text-gray-500 text-xs mb-1">Current Balance</div>
@@ -72,6 +120,14 @@ export default function HomeScreen() {
         </button>
         <button onClick={() => router.push('/members')} className="bg-white p-6 rounded-2xl shadow border border-gray-100 hover:border-green-200 transition-all active:scale-95 text-center">
           <UsersIcon className="mx-auto mb-2 text-gray-700" /><span className="font-semibold text-lg text-gray-900">Members</span>
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <button onClick={() => router.push('/chat')} className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95">
+          <ChatIcon size={20} /><span className="font-semibold">Group Chat</span>
+        </button>
+        <button onClick={() => router.push('/statements')} className="bg-white p-4 rounded-xl shadow border border-gray-100 hover:border-green-200 transition-all active:scale-95 text-center">
+          <FileIcon className="mx-auto mb-1 text-gray-700" /><span className="font-semibold text-gray-900">Statements</span>
         </button>
       </div>
       <div className="bg-white p-4 rounded-xl shadow border border-gray-100">
@@ -107,8 +163,8 @@ export default function HomeScreen() {
         <Link href="/" className="flex flex-col items-center text-green-600"><WalletIcon size={20} /><span className="text-xs mt-1">Home</span></Link>
         <Link href="/add-contribution" className="flex flex-col items-center text-gray-400 hover:text-green-600"><PlusIcon size={20} /><span className="text-xs mt-1">Add</span></Link>
         <Link href="/members" className="flex flex-col items-center text-gray-400 hover:text-green-600"><UsersIcon size={20} /><span className="text-xs mt-1">Members</span></Link>
+        <Link href="/chat" className="flex flex-col items-center text-gray-400 hover:text-green-600"><ChatIcon size={20} /><span className="text-xs mt-1">Chat</span></Link>
         <Link href="/statements" className="flex flex-col items-center text-gray-400 hover:text-green-600"><FileIcon size={20} /><span className="text-xs mt-1">Statements</span></Link>
-        <Link href="/settings" className="flex flex-col items-center text-gray-400 hover:text-green-600"><SettingsIcon size={20} /><span className="text-xs mt-1">Settings</span></Link>
       </nav>
     </div>
   );

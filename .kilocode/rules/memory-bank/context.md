@@ -3,7 +3,7 @@
 ## Project Status
 
 **Phase**: MVP Development
-**Last Updated**: 2025-04-21
+**Last Updated**: 2026-04-21
 
 ## Recent Completed Changes
 
@@ -19,10 +19,14 @@
 - [x] TypeScript types for all entities
 - [x] Next.js routing configured
 - [x] Memory bank updated with full architecture
+- [x] Login/auth system with phone + PIN authentication
+- [x] Session management and protected routes
+- [x] Admin dashboard to monitor all members' contributions
+- [x] Group chat feature for members to share views
 
 ## Current Focus
 
-Integrating M-Pesa Daraja API credentials for end-to-end payment flow testing.
+Testing auth flow and admin features.
 
 Pending items:
 1. Supabase database setup & RLS policies
@@ -38,14 +42,14 @@ Pending items:
 
 - ⚠️ Voice parser accuracy needs real-world testing (currently synthetic)
 - ⚠️ Offline sync not implemented (stubbed)
-- ⚠️ No auth flows yet
+- ⚠️ Auth uses localStorage (needs Supabase for production)
 - ⚠️ Icons use inline SVGs (should move to components later)
 
 ## Next Up (Priority Order)
 
 1. Install dependencies: `bun add @supabase/supabase-js @react-pdf/renderer`
 2. Initialize Supabase project, run schema.sql
-3. Build auth flow (signup/login with phone OTP)
+3. Improve auth flow with Supabase Auth
 4. Create first chama onboarding flow
 5. Implement offline storage wrapper
 6. Connect M-Pesa sandbox
@@ -55,4 +59,5 @@ Pending items:
 
 | Date | Changes |
 |------|---------|
+| 2026-04-21 | Added login/auth, admin dashboard, group chat features |
 | 2025-04-21 | Initial project setup, screens, voice parser, M-Pesa webhook, memory bank |
