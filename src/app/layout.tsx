@@ -28,7 +28,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#16a34a',
+  themeColor: '#059669',
 };
 
 export default function RootLayout({
@@ -39,19 +39,25 @@ export default function RootLayout({
   return (
     <html lang="sw">
       <head>
-        <meta name="theme-color" content="#16a34a" />
+        <meta name="theme-color" content="#059669" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-gray-50 text-gray-900`}>
         <SessionProvider>
-          <div className="min-h-screen pb-20">
-            {/* Top status bar simulation */}
-            <div className="bg-green-600 text-white px-4 py-2 text-sm font-medium">
-              Chama OS
-            </div>
-            {children}
+          <div className="min-h-screen pb-20 bg-gradient-to-b from-emerald-50 to-white">
+            <header className="bg-emerald-600 text-white px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-lg font-bold">Chama OS</h1>
+                  <p className="text-emerald-100 text-xs">Digital Chama Management</p>
+                </div>
+              </div>
+            </header>
+            <main className="p-4">
+              {children}
+            </main>
           </div>
         </SessionProvider>
       </body>
