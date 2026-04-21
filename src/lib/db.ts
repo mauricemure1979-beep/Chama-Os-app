@@ -106,6 +106,33 @@ export const db = {
     return message;
   },
 
+  // Rules and Constitution
+  getRules() {
+    return JSON.parse(localStorage.getItem('chama_rules') || '[]');
+  },
+
+  saveRule(rule: Record<string, unknown>) {
+    const rules = db.getRules();
+    rules.push({ ...rule, id: rule.id || crypto.randomUUID(), createdAt: new Date().toISOString() });
+    localStorage.setItem('chama_rules', JSON.stringify(rules));
+    return rule;
+  },
+
+  updateRule(id: string, updates: Record<string, unknown>) {
+    const rules = db.getRules();
+    const index = rules.findIndex((r: { id: string }) => r.id === id);
+    if (index >= 0) {
+      rules[index] = { ...rules[index], ...updates, updatedAt: new Date().toISOString() };
+      localStorage.setItem('chama_rules', JSON.stringify(rules));
+    }
+    return rules[index];
+  },
+
+  deleteRule(id: string) {
+    const rules = db.getRules().filter((r: { id: string }) => r.id !== id);
+    localStorage.setItem('chama_rules', JSON.stringify(rules));
+  },
+
   // Initialize with demo data
   initDemo() {
     if (db.getMembers().length === 0) {
@@ -125,6 +152,16 @@ export const db = {
         { id: '4', memberId: '4', memberName: 'Omondi Otieno', amount: 1500, date: '2025-04-17', status: 'partial' },
       ];
       localStorage.setItem(getStorageKey('contributions'), JSON.stringify(demoContributions));
+    }
+
+    if (db.getRules().length === 0) {
+      const demoRules = [
+        { id: '1', title: 'Monthly Contribution', content: 'Each member must contribute KES 2,000 by the 5th of every month.', category: 'contribution' },
+        { id: '2', title: 'Late Payment Fine', content: 'A 10% penalty will be applied for late payments after the due date.', category: 'fine' },
+        { id: '3', title: 'Payout Rotation', content: 'Members receive payouts in rotation order. The treasurer announces the schedule monthly.', category: 'payout' },
+        { id: '4', title: 'Minimum Members', content: 'The group must maintain at least 5 active members at all times.', category: 'membership' },
+      ];
+      localStorage.setItem('chama_rules', JSON.stringify(demoRules));
     }
   }
 };
