@@ -16,11 +16,19 @@ const LockIcon = ({ className, size = 24 }: { className?: string; size?: number 
   </svg>
 );
 
+const EmailIcon = ({ className, size = 24 }: { className?: string; size?: number }) => (
+  <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+    <polyline points="22,6 12,13 2,6"/>
+  </svg>
+);
+
 export default function LoginPage() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [isNewUser, setIsNewUser] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,7 +42,7 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phone, pin, name: isNewUser ? name : undefined })
+        body: JSON.stringify({ phoneNumber: phone, pin, name: isNewUser ? name : undefined, email: isNewUser ? email : undefined })
       });
 
       const data = await response.json();
@@ -92,17 +100,32 @@ export default function LoginPage() {
           </div>
 
           {isNewUser && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your full name"
-                className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
-                required
-              />
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email (optional)</label>
+                <div className="relative">
+                  <EmailIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           <div>
