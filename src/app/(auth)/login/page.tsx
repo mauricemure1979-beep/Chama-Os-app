@@ -23,13 +23,22 @@ const EmailIcon = ({ className, size = 24 }: { className?: string; size?: number
   </svg>
 );
 
+const UserIcon = ({ className, size = 24 }: { className?: string; size?: number }) => (
+  <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+
+type AuthMode = 'signin' | 'register';
+
 export default function LoginPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<AuthMode>('signin');
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [isNewUser, setIsNewUser] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -42,13 +51,18 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phone, pin, name: isNewUser ? name : undefined, email: isNewUser ? email : undefined })
+        body: JSON.stringify({ 
+          phoneNumber: phone, 
+          pin, 
+          name: mode === 'register' ? name : undefined, 
+          email: mode === 'register' ? email : undefined 
+        })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Login failed');
+        setError(data.error || 'Failed. Please try again.');
         return;
       }
 
@@ -61,25 +75,47 @@ export default function LoginPage() {
     }
   };
 
-  const checkExistingUser = () => {
-    if (phone.length >= 9) {
-      const users = JSON.parse(localStorage.getItem('chama_users') || '[]');
-      const exists = users.find((u: { phone: string }) => u.phone.includes(phone.replace(/^254/, '+254').replace(/^0/, '+254')));
-      setIsNewUser(!exists);
-    }
+  const switchMode = (newMode: AuthMode) => {
+    setMode(newMode);
+    setError('');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.168-1.27-.463-1.817M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.168-1.27.463-1.817M15 7l3 3m-3-3l-3 3"/>
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Chama Login</h1>
-          <p className="text-gray-500 mt-1">Enter your details to continue</p>
+          <p className="text-gray-500 mt-1">Sign in or create new account</p>
+        </div>
+
+        <div className="flex gap-2 mb-6">
+          <button
+            type="button"
+            onClick={() => switchMode('signin')}
+            className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
+              mode === 'signin' 
+                ? 'bg-green-600 text-white' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode('register')}
+            className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
+              mode === 'register' 
+                ? 'bg-green-600 text-white' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Register
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -90,8 +126,7 @@ export default function LoginPage() {
               <input
                 type="tel"
                 value={phone}
-                onChange={(e) => { setPhone(e.target.value); checkExistingUser(); }}
-                onBlur={checkExistingUser}
+                onChange={(e) => setPhone(e.target.value)}
                 placeholder="07XX XXX XXXX"
                 className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
                 required
@@ -99,18 +134,21 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {isNewUser && (
+          {mode === 'register' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your full name"
-                  className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
-                  required
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                    required
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email (optional)</label>
@@ -153,12 +191,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Please wait...' : (isNewUser ? 'Create Account' : 'Login')}
+            {loading ? 'Please wait...' : (mode === 'signin' ? 'Sign In' : 'Create Account')}
           </button>
         </form>
 
         <p className="text-center text-gray-500 text-sm mt-6">
-          Demo: Enter any phone and 4-digit PIN to continue
+          {mode === 'signin' 
+            ? 'Enter your phone and PIN to sign in' 
+            : 'Enter your details to create an account'}
         </p>
       </div>
     </div>
