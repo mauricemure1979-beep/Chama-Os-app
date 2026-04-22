@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useLayoutEffect } from 'react';
 import Link from 'next/link';
+import { db } from '@/lib/db';
 
 type IconProps = { className?: string; size?: number };
 
@@ -36,51 +37,144 @@ const PhoneIcon = ({ className, size = 14 }: IconProps) => (
     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
   </svg>
 );
+const CloseIcon = ({ size = 24 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+interface Member {
+  id: string;
+  name: string;
+  phone: string;
+  totalContributions: number;
+  status: string;
+  role: string;
+}
+
+function getInitialMembers(): Member[] {
+  if (typeof window === 'undefined') return [];
+  db.initDemo();
+  return db.getMembers();
+}
 
 export default function MembersScreen() {
+  const [members, setMembers] = useState<Member[]>(getInitialMembers);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'pending'>('all');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newMember, setNewMember] = useState({ name: '', phone: '', role: 'member' });
+  const [saving, setSaving] = useState(false);
 
-  const mockMembers = [
-    { id: '1', name: 'Wanjiku Mwaura', phone: '+254712345678', totalContrib: 45000, status: 'active', role: 'member' },
-    { id: '2', name: 'Kamau Omondi', phone: '+254723456789', totalContrib: 42000, status: 'active', role: 'member' },
-    { id: '3', name: 'Achieng Odhiambo', phone: '+254734567890', totalContrib: 50000, status: 'active', role: 'chair' },
-    { id: '4', name: 'Mary Wairimu', phone: '+254745678901', totalContrib: 38000, status: 'active', role: 'secretary' },
-    { id: '5', name: 'John Njoroge', phone: '+254756789012', totalContrib: 0, status: 'suspended', role: 'member' },
-  ];
-
-  const filteredMembers = mockMembers.filter((member) => {
+  const filteredMembers = members.filter((member) => {
     const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filter === 'all' || member.status === filter;
     return matchesSearch && matchesFilter;
   });
 
-  const formatCurrency = (cents: number) => `KES ${(cents / 100).toLocaleString()}`;
+  const formatCurrency = (cents: number) => `KES ${cents.toLocaleString()}`;
+
+  const handleAddMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMember.name.trim() || !newMember.phone.trim()) return;
+
+    setSaving(true);
+    const member = {
+      id: crypto.randomUUID(),
+      name: newMember.name,
+      phone: newMember.phone.replace(/^254/, '+254').replace(/^0/, '+254'),
+      totalContributions: 0,
+      status: 'active',
+      role: newMember.role
+    };
+    
+    db.saveMember(member);
+    setMembers([...members, member]);
+    setNewMember({ name: '', phone: '', role: 'member' });
+    setShowAddForm(false);
+    setSaving(false);
+  };
 
   return (
     <div className="p-4 space-y-6">
       <div className="bg-white p-6 rounded-2xl shadow">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Members</h1>
-        <p className="text-gray-500 text-sm">{mockMembers.length} total members</p>
+        <p className="text-gray-500 text-sm">{members.length} total members</p>
         <div className="mt-4 relative">
           <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search member..." className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search member..." className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
         </div>
         <div className="flex gap-2 mt-4">
           {(['all', 'active', 'pending'] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)} className={`flex-1 py-3 rounded-xl font-medium capitalize transition-colors ${filter === f ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-green-50'}`}>
+            <button key={f} onClick={() => setFilter(f)} className={`flex-1 py-3 rounded-xl font-medium capitalize transition-colors ${filter === f ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-emerald-50'}`}>
               {f === 'all' ? 'All' : f === 'active' ? 'Active' : 'Pending'}
             </button>
           ))}
         </div>
       </div>
 
+      {showAddForm && (
+        <div className="bg-white p-6 rounded-2xl shadow border-2 border-emerald-500">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Add New Member</h2>
+            <button onClick={() => setShowAddForm(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <CloseIcon size={20} />
+            </button>
+          </div>
+          <form onSubmit={handleAddMember} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+              <input
+                type="text"
+                value={newMember.name}
+                onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
+                placeholder="Enter full name"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <input
+                type="tel"
+                value={newMember.phone}
+                onChange={(e) => setNewMember({ ...newMember, phone: e.target.value })}
+                placeholder="07XX XXX XXXX"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <select
+                value={newMember.role}
+                onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                <option value="member">Member</option>
+                <option value="treasurer">Treasurer</option>
+                <option value="chair">Chair</option>
+                <option value="secretary">Secretary</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-semibold transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Adding...' : 'Add Member'}
+            </button>
+          </form>
+        </div>
+      )}
+
       <div className="space-y-4 pb-24">
         {filteredMembers.map((member) => (
           <div key={member.id} className="bg-white p-5 rounded-2xl shadow border border-gray-100">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-bold text-lg">{member.name.charAt(0)}</div>
+                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold text-lg">{member.name.charAt(0)}</div>
                 <div>
                   <h3 className="font-semibold text-gray-900 text-lg">{member.name}</h3>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -88,29 +182,32 @@ export default function MembersScreen() {
                   </div>
                 </div>
               </div>
-              {member.status === 'active' ? <CheckCircleIcon className="text-green-500" /> : <AlertIcon className="text-amber-500" />}
+              {member.status === 'active' ? <CheckCircleIcon className="text-emerald-500" /> : <AlertIcon className="text-amber-500" />}
             </div>
             <div className="mt-4 grid grid-cols-2 gap-4">
               <div className="bg-gray-50 p-3 rounded-xl">
                 <div className="text-xs text-gray-500 mb-1">Total Contributed</div>
-                <div className="font-bold text-gray-900">{formatCurrency(member.totalContrib)}</div>
+                <div className="font-bold text-gray-900">{formatCurrency(member.totalContributions)}</div>
               </div>
               <div className="bg-gray-50 p-3 rounded-xl">
                 <div className="text-xs text-gray-500 mb-1">Role</div>
                 <div className="font-medium text-gray-900 capitalize flex items-center gap-2">
-                  {member.role === 'chair' && <ShieldIcon className="text-amber-600" />}
+                  {(member.role === 'chair' || member.role === 'treasurer') && <ShieldIcon className="text-amber-600" />}
                   {member.role}
                 </div>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
-              <button className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors">Send Reminder</button>
-              <button className="px-4 py-3 border border-gray-300 hover:border-green-500 rounded-xl transition-colors">View History</button>
+              <button className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors">Send Reminder</button>
+              <button className="px-4 py-3 border border-gray-300 hover:border-emerald-500 rounded-xl transition-colors">View History</button>
             </div>
           </div>
         ))}
       </div>
-      <button className="fixed bottom-24 right-4 w-16 h-16 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95">
+      <button 
+        onClick={() => setShowAddForm(true)}
+        className="fixed bottom-24 right-4 w-16 h-16 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95"
+      >
         <UserPlusIcon />
       </button>
     </div>
